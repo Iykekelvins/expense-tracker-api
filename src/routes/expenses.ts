@@ -3,17 +3,21 @@ import { CreateExpenseDto, UpdateExpenseDto } from '../types/expenses.js';
 import { createExpenseSchema, updateExpenseSchema } from '../schemas/expenses.js';
 import { CATEGORY } from '../generated/prisma/enums.js';
 
-import expenses from '../services/expenses.js';
+import expenses, { ExpensesQuery } from '../services/expenses.js';
 
 type IdParams = {
 	id: string;
 };
 
 const expensesRoutes: FastifyPluginAsync = async (app) => {
-	app.get('/', async (request, reply) => {
+	app.get<{ Querystring: ExpensesQuery }>('/', async (request, reply) => {
 		await request.jwtVerify();
 
-		const userExpenses = await expenses.getAllExpenses(app.prisma, request.user.id);
+		const userExpenses = await expenses.getAllExpenses(
+			app.prisma,
+			request.user.id,
+			request.query,
+		);
 
 		return {
 			data: userExpenses,

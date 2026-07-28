@@ -3,10 +3,47 @@ import { ExpenseWhereInput } from '../generated/prisma/models.js';
 import { CreateExpenseDto, UpdateExpenseDto } from '../types/expenses.js';
 import { AppError } from '../utils/AppError.js';
 
-const getAllExpenses = async (prisma: PrismaClient, userId: string) => {
+export type ExpensesQuery = {
+	period?: 'week' | 'month' | '3months';
+	startDate?: string;
+	endDate?: string;
+};
+
+const getAllExpenses = async (
+	prisma: PrismaClient,
+	userId: string,
+	filters: ExpensesQuery,
+) => {
 	const where: ExpenseWhereInput = {
 		userId,
 	};
+
+	if (filters.period) {
+		const now = new Date();
+		const start = new Date(now);
+
+		switch (filters.period) {
+			case 'week':
+				start.setDate(now.getDate() - 7);
+				break;
+			case 'month':
+				start.setMonth(now.getMonth() - 1);
+				break;
+			case '3months':
+				start.setMonth(now.getMonth() - 3);
+				break;
+		}
+
+		where.date = {
+			gte: start,
+			lte: now,
+		};
+	} else if (filters.startDate || filters.endDate) {
+		where.date = {
+			...(filters.startDate && { gte: new Date(filters.startDate) }),
+			...(filters.endDate && { lte: new Date(filters.endDate) }),
+		};
+	}
 
 	return prisma.expense.findMany({
 		where,
